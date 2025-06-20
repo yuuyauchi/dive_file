@@ -1,0 +1,35 @@
+{
+    "license": [
+      "Scuba Diver",
+      "Open Water Diver",
+      "Advanced Open Water Diver",
+      "Rescue Diver",
+      "Master Scuba Diver",
+      "Divemaster",
+      "Assistant Instructor",
+      "Open Water Scuba Instructor",
+      "Master Scuba Diver Trainer",
+      "IDC Staff Instructor",
+      "Course Director"
+    ],
+    "specialities": [
+      "Peak Performance Buoyancy",
+      "Enriched Air Diver",
+      "Deep Diver",
+      "Underwater Navigator",
+      "Night Diver",
+      "Drift Diver",
+      "Boat Diver",
+      "Search and Recovery Diver",
+      "Digital Underwater Photographer",
+      "Fish Identification",
+      "Wreck Diver",
+      "Dry Suit Diver",
+      "Altitude Diver",
+      "Ice Diver",
+      "Cavern Diver",
+      "Rebreather Diver",
+      "Self-Reliant Diver"
+    ]
+  }
+  
