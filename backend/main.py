@@ -167,14 +167,15 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     save_result(shop_info_dict, filename, output_dir)
     # except Exception as e:
     #     breakpoint()
-def load_shop_urls(path: str) -> List[dict]:
+def load_json(path: str) -> List[dict]:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
     
 async def main():
     license_list, specialty_list = load_license_data("backend/dive_info.json")
     output_dir = "output"
-    shop_entries = load_shop_urls("backend/shop_urls.json")
+    shop_entries = load_json("backend/shop_urls.json")
+    course_description = load_json("backend/course_description.json")
     for idx, entry in enumerate(shop_entries):
         url = entry["url"]
         # prefecture = entry["prefecture"]
