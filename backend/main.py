@@ -11,6 +11,7 @@ from openai import OpenAI
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from extract_shop_info import extract_shop_info
+from get_place_details import get_reviews
 
 # 環境変数の読み込み
 load_dotenv()
@@ -55,7 +56,7 @@ def get_web_search_prompt(hostname: str, license_list, specialty_list) -> str:
 
         以下の情報を抽出してください。
         course_name: ライセンスのコース名あるいはスペシャリティコース名, examples="Open Water Diver"
-        price: コースの価格, examples="39,800円"
+        price: コースの価格, examples="39800"
 
         以下の出力形式に従い、ライセンス名と価格のペアの形で共有してください。
 
@@ -159,6 +160,8 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     if merged is None:
         return
     shop_info_dict.update(merged)
+    reviews = get_reviews(shop_info_dict["name"])
+    shop_info_dict["reviews"] = reviews if reviews else []
 
     filename = sanitize_filename(target_url)
     save_result(shop_info_dict, filename, output_dir)
@@ -174,15 +177,15 @@ async def main():
     shop_entries = load_shop_urls("backend/shop_urls.json")
     for idx, entry in enumerate(shop_entries):
         url = entry["url"]
-        prefecture = entry["prefecture"]
-        name = entry["name"]
+        # prefecture = entry["prefecture"]
+        # name = entry["name"]
         is_checked = entry.get("is_checked", False)
         try:
             if is_checked:
-                print(f"✅ {prefecture} - {name} は既に処理済みです。")
+                # print(f"✅ {prefecture} - {name} は既に処理済みです。")
                 continue
             else:
-                print(f"🔍 {prefecture} - {name} を処理中...")
+                # print(f"🔍 {prefecture} - {name} を処理中...")
                 await process_url(url, license_list, specialty_list, output_dir)
                 shop_entries[idx]["is_checked"] = True
         except Exception as e:

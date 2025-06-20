@@ -24,6 +24,9 @@ class ShopInfo(BaseModel):
     email: Optional[str] = Field(None, description="メールアドレス", examples="example@gmail.com")
     website: str = Field(None, description="公式WebサイトURL", examples="http://www.example.com")
     image_url: Optional[str] = Field(None, description="代表画像URL", examples="http://www.example.com/image.jpg")
+    site_images: Optional[list] = Field(
+        None, description="サイト内の画像URLリスト", examples=["http://www.example.com/image1.jpg", "http://www.example.com/image2.jpg", "http://www.example.com/image3.jpg", "http://www.example.com/image4.jpg", "http://www.example.com/image5.jpg"]
+    )
 
 # 関数定義
 async def extract_shop_info(url: str) -> dict:
@@ -40,7 +43,8 @@ async def extract_shop_info(url: str) -> dict:
         "phone": "...",
         "email": "...",
         "website": "...",
-        "image_url": "..."
+        "image_url": "...",
+        "site_images": ["...", "...", "...", "...", "..."]
     }
 
     抽出できない項目は null にしてください。
