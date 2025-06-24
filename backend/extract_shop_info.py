@@ -19,7 +19,7 @@ class ShopInfo(BaseModel):
     description: str = Field(..., description="店舗紹介文")
     prefecture: Optional[str] = Field(None, description="都道府県", examples="沖縄県")
     address: Optional[str] = Field(None, description="住所", examples="沖縄県那覇市松山1-2-3")
-    location: Optional[dict] = Field(None, description="緯度経度", examples={"lat": 26.2041, "lng": 127.6476})
+    location: Optional[str] = Field(None, description="ダイビングのロケーション", examples="石垣島")
     phone: Optional[str] = Field(None, description="電話番号", examples="098-123-4567")
     email: Optional[str] = Field(None, description="メールアドレス", examples="example@gmail.com")
     website: str = Field(None, description="公式WebサイトURL", examples="http://www.example.com")
@@ -39,7 +39,7 @@ async def extract_shop_info(url: str) -> dict:
         "description": "...",
         "prefecture": "...",
         "address": "...",
-        "location": {"lat": ..., "lng": ...},
+        "location": "...",
         "phone": "...",
         "email": "...",
         "website": "...",
