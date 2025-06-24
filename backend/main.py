@@ -12,6 +12,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
+import uuid
 
 # 環境変数の読み込み
 load_dotenv()
@@ -160,8 +161,9 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     if merged is None:
         return
     shop_info_dict.update(merged)
-    reviews = get_reviews(shop_info_dict["name"])
-    shop_info_dict["reviews"] = reviews if reviews else []
+    reviews_dict = get_reviews(shop_info_dict["name"])
+    shop_info_dict.update(reviews_dict)
+    shop_info_dict.update({"id": str(uuid.uuid4())})
 
     filename = sanitize_filename(target_url)
     save_result(shop_info_dict, filename, output_dir)
