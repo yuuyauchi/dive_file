@@ -40,14 +40,15 @@ def get_reviews(query: str, language_code: str = "ja"):
     if not place_id:
         return
     # ② 詳細情報を取得
-    details_result = gmaps.place(place_id=place_id, fields=["name", "url", "reviews"], language=language_code)
+    details_result = gmaps.place(place_id=place_id, fields=["name", "url", "reviews", "rating", "user_ratings_total"], language=language_code)
+    rating = details_result["result"]["rating"]
+    review_count = details_result["result"]["user_ratings_total"]
 
     if details_result.get("status") == "OK":
         result = details_result.get("result", {})
         name = result.get("name", "名称なし")
         url = result.get("url", "URLなし")
         reviews = result.get("reviews", [])
-
         review_list = []
         for i, review in enumerate(reviews[:10]):
             author = review.get("author_name", "匿名")
@@ -55,12 +56,14 @@ def get_reviews(query: str, language_code: str = "ja"):
             text = review.get("text", "レビュー内容なし")
             review_list.append({
                 "author": author,
-                "rating": rating,
-                "text": text
+                "text": text,
             })
-            # print(f"  {i+1}. {author}（評価: {rating}）")
-            # print(f"    {text}\n")
-        return review_list
+        review_dict = {
+            "reviews": review_list,
+            "rating": rating,
+            "review_count": review_count,
+        }
+        return review_dict
     else:
         print("[詳細情報取得失敗]", details_result.get("status"))
         return 
