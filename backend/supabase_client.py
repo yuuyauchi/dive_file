@@ -32,3 +32,29 @@ def delete_row(table_name: str, row_id: str) -> dict:
     response = supabase.table(table_name).delete().eq("id", row_id).execute()
     return response.data[0] if response.data else {}
 
+def add_diving_shops(
+    data: List[dict],
+) -> dict:
+    df = pd.DataFrame(data)
+    column_list = [
+        "id",
+        "name",
+        "description",
+        "location",
+        "prefecture",
+        "address",
+        "email",
+        "website",
+        "image_url",
+        "rating",
+        "review_count"
+    ]
+    df = df[column_list]
+    df.fillna("-", inplace=True)
+    df.sort_values(by=["name"], inplace=True, ascending=False)
+    df.drop_duplicates(subset=["name"], inplace=True)
+    data = df.to_dict(orient='records')
+    return insert_row("diving_shops", data)
+
+
+
