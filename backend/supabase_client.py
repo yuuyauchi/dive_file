@@ -57,4 +57,52 @@ def add_diving_shops(
     return insert_row("diving_shops", data)
 
 
+def add_diving_shops(
+    data: List[dict],
+) -> dict:
+    df = pd.DataFrame(data)
+    column_list = [
+        "id",
+        "name",
+        "description",
+        "location",
+        "prefecture",
+        "address",
+        "email",
+        "website",
+        "image_url",
+        "rating",
+        "review_count"
+    ]
+    df = df[column_list]
+    df.fillna("-", inplace=True)
+    df.sort_values(by=["name"], inplace=True, ascending=False)
+    df.drop_duplicates(subset=["name"], inplace=True)
+    data = df.to_dict(orient='records')
+    return insert_row("diving_shops", data)
+
+def add_course_schedules(data: List) -> dict:
+    pass
+
+def add_course_reviews(data: List) -> dict:
+    pass
+
+def add_course_types(data: List) -> dict:
+    df = pd.DataFrame(data)
+    column_list = [
+        "id",
+        "name",
+        "description",
+        "level"
+    ]
+    df = df[column_list]
+    df.fillna("-", inplace=True)
+    df.sort_values(by=["name"], inplace=True, ascending=False)
+    df.drop_duplicates(subset=["name"], inplace=True)
+    data = df.to_dict(orient='records')
+    return insert_row("diving_shops", data)
+
+def validate_data(data: List) -> List:
+    pass
+
 

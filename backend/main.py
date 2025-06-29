@@ -167,12 +167,34 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
 
     filename = sanitize_filename(target_url)
     save_result(shop_info_dict, filename, output_dir)
-    # except Exception as e:
-    #     breakpoint()
+
 def load_json(path: str) -> List[dict]:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
     
+def merge_dive_shop_info(df: pd.DataFrame) -> pd.DataFrame:
+    def merge_rows(group):
+        first_row = group.iloc[0].copy()
+
+        # course_list 統合
+        all_courses = []
+        for courses in group['course_list']:
+            all_courses.extend(courses)
+        all_course_list = []
+        name_list = []
+        for course in all_courses:
+            if course['name'] in name_list:
+                print(f"Duplicate course name found: {course['name']}")
+                continue
+            all_course_list.append(course)
+            name_list.append(course['name'])
+        first_row['course_list'] = all_course_list
+        return first_row
+
+    merged_df = df.groupby('name', as_index=False).apply(merge_rows).reset_index(drop=True)
+    return merged_df
+
+
 async def main():
     license_list, specialty_list = load_license_data("backend/dive_info.json")
     output_dir = "output"
@@ -196,6 +218,15 @@ async def main():
             print(e)
             continue
     save_result(shop_entries, "backend/shop_urls.json", "./")
+    path_list = os.listdir(f"{output_dir}")
+    data_list = []
+    for file_name in path_list:
+        with open(f"{output_dir}/{file_name}", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data_list.append(data)
+    df = pd.DataFrame(data_list)
+    merged_df = merge_dive_shop_info(df)
+    merged_df.to_csv("sample.csv", index=False)
 
 if __name__ == "__main__":
     asyncio.run(main())
