@@ -12,6 +12,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
+from diving_course_normalizer import correct_diving_course_spelling
 import uuid
 
 # 環境変数の読み込み
@@ -41,7 +42,7 @@ class ArticleData(BaseModel):
 def load_license_data(path: str) -> tuple:
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    return data.get("license", []), data.get("specialty", [])
+    return data.get("license", []), data.get("specialities", [])
 
 def sanitize_filename(url: str) -> str:
     parsed = urlparse(url)
@@ -141,6 +142,8 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     shop_info_json = await extract_shop_info(hostname)
 
     course_info_dict = course_info_json[0] if isinstance(course_info_json, list) else course_info_json
+    course_name_list = license_list + specialty_list
+    course_info_dict["name"] = correct_diving_course_spelling(course_info_dict["name"], client, course_name_list)
     shop_info_dict = shop_info_json[0] if isinstance(shop_info_json, list) else shop_info_json
 
     if "course_list" not in course_info_dict:
