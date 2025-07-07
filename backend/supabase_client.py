@@ -7,8 +7,8 @@ import json
 import uuid
 
 load_dotenv()
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+supabase_url = os.getenv("SUPABASE_API_URL")
+supabase_key = os.getenv("SUPABASE_API_KEY")
 
 supabase = create_client(supabase_url, supabase_key)
 
@@ -32,77 +32,63 @@ def delete_row(table_name: str, row_id: str) -> dict:
     response = supabase.table(table_name).delete().eq("id", row_id).execute()
     return response.data[0] if response.data else {}
 
-def add_diving_shops(
-    data: List[dict],
-) -> dict:
-    df = pd.DataFrame(data)
-    column_list = [
-        "id",
-        "name",
-        "description",
-        "location",
-        "prefecture",
-        "address",
-        "email",
-        "website",
-        "image_url",
-        "rating",
-        "review_count"
-    ]
-    df = df[column_list]
-    df.fillna("-", inplace=True)
-    df.sort_values(by=["name"], inplace=True, ascending=False)
-    df.drop_duplicates(subset=["name"], inplace=True)
-    data = df.to_dict(orient='records')
-    return insert_row("diving_shops", data)
-
+def upsert_rows(table_name: str, data: List[dict], on_conflict: str) -> List[dict]:
+    """
+    Supabaseテーブルにデータをupsert（insert or update）する。
+    on_conflictで指定されたカラムが重複した場合に更新する。
+    """
+    if not data:
+        return []
+    response = supabase.table(table_name).upsert(data, on_conflict=on_conflict).execute()
+    return response.data
 
 def add_diving_shops(
-    data: List[dict],
-) -> dict:
+    data: List[dict]
+) -> List[dict]:
+    """
+    ショップ情報のリストをDBにupsertする。
+    コース情報など、テーブルにないカラムは除外する。
+    """
     df = pd.DataFrame(data)
+    # DBスキーマに存在するカラムのみを選択
     column_list = [
-        "id",
-        "name",
-        "description",
-        "location",
-        "prefecture",
-        "address",
-        "email",
-        "website",
-        "image_url",
-        "rating",
-        "review_count"
+        "id", "name", "description", "location", "prefecture",
+        "address", "phone", "email", "website", "image_url",
+        "rating", "review_count"
     ]
-    df = df[column_list]
-    df.fillna("-", inplace=True)
-    df.sort_values(by=["name"], inplace=True, ascending=False)
-    df.drop_duplicates(subset=["name"], inplace=True)
-    data = df.to_dict(orient='records')
-    return insert_row("diving_shops", data)
+    # dfに存在するカラムのみを対象にする
+    df_columns = [col for col in column_list if col in df.columns]
+    df = df[df_columns]
 
-def add_course_schedules(data: List) -> dict:
-    pass
+    # 欠損値を適切に処理
+    df.fillna(value={
+        'description': '', 'address': '', 'phone': '', 'email': '',
+        'website': '', 'image_url': '', 'location': '', 'prefecture': '',
+        'rating': 0, 'review_count': 0
+    }, inplace=True)
 
-def add_course_reviews(data: List) -> dict:
-    pass
+    data_to_upsert = df.to_dict(orient='records')
+    # 'name' をコンフリクトのキーとしてupsertし、結果を返す
+    return upsert_rows("diving_shops", data_to_upsert, on_conflict='name')
 
-def add_course_types(data: List) -> dict:
+def add_diving_courses(data: List[dict]) -> List[dict]:
+    """
+    コース情報のリストをdiving_coursesテーブルにupsertする。
+    """
+    if not data:
+        return []
     df = pd.DataFrame(data)
-    column_list = [
-        "id",
-        "name",
-        "description",
-        "level"
-    ]
-    df = df[column_list]
-    df.fillna("-", inplace=True)
-    df.sort_values(by=["name"], inplace=True, ascending=False)
-    df.drop_duplicates(subset=["name"], inplace=True)
-    data = df.to_dict(orient='records')
-    return insert_row("diving_shops", data)
+    # 必須カラムとデータ型を整形
+    df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
+    df['level'] = df['level'].fillna('unknown').astype(str)
+    df.rename(columns={'name': 'title'}, inplace=True)
+    df.dropna(subset=['shop_id', 'title'], inplace=True)
 
-def validate_data(data: List) -> List:
-    pass
-
+    # DBスキーマに存在するカラムのみを対象とする
+    db_columns = ['shop_id', 'title', 'price', 'level']
+    df_columns = [col for col in db_columns if col in df.columns]
+    data_to_upsert = df[df_columns].to_dict(orient='records')
+    
+    # shop_idとtitleの組み合わせでコンフリクトを判断
+    return upsert_rows("diving_courses", data_to_upsert, on_conflict='shop_id,title')
 

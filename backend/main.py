@@ -10,9 +10,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from database_handler import save_to_db
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
-import uuid
+from supabase_client import add_diving_shops, add_diving_courses
 
 # 環境変数の読み込み
 load_dotenv()
@@ -161,9 +162,10 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     if merged is None:
         return
     shop_info_dict.update(merged)
-    reviews_dict = get_reviews(shop_info_dict["name"])
-    shop_info_dict.update(reviews_dict)
-    shop_info_dict.update({"id": str(uuid.uuid4())})
+    if shop_info_dict.get("name"):
+        reviews_dict = get_reviews(shop_info_dict["name"])
+        if reviews_dict:
+            shop_info_dict.update(reviews_dict)
 
     filename = sanitize_filename(target_url)
     save_result(shop_info_dict, filename, output_dir)
@@ -198,35 +200,63 @@ def merge_dive_shop_info(df: pd.DataFrame) -> pd.DataFrame:
 async def main():
     license_list, specialty_list = load_license_data("backend/dive_info.json")
     output_dir = "output"
-    shop_entries = load_json("backend/shop_urls.json")
-    course_description = load_json("backend/course_description.json")
-    for idx, entry in enumerate(shop_entries):
+    shop_urls_path = "backend/shop_urls.json"
+    shop_status_path = "backend/shop_status.json"
+
+    shop_entries = load_json(shop_urls_path)
+
+    # ステータスファイルを読み込む（なければ空の辞書）
+    try:
+        with open(shop_status_path, "r", encoding="utf-8") as f:
+            shop_status = json.load(f)
+    except FileNotFoundError:
+        shop_status = {}
+
+    for entry in shop_entries:
         url = entry["url"]
-        # prefecture = entry["prefecture"]
-        # name = entry["name"]
-        is_checked = entry.get("is_checked", False)
-        try:
-            if is_checked:
-                # print(f"✅ {prefecture} - {name} は既に処理済みです。")
-                continue
-            else:
-                # print(f"🔍 {prefecture} - {name} を処理中...")
-                await process_url(url, license_list, specialty_list, output_dir)
-                shop_entries[idx]["is_checked"] = True
-        except Exception as e:
-            shop_entries[idx]["is_checked"] = False
-            print(e)
+        # URLをキーとしてステータスをチェック
+        if shop_status.get(url):
+            print(f"✅ {entry.get('name', url)} は既に処理済みです。スキップします。")
             continue
-    save_result(shop_entries, "backend/shop_urls.json", "./")
-    path_list = os.listdir(f"{output_dir}")
+
+        try:
+            print(f"🔍 {entry.get('name', url)} を処理中...")
+            await process_url(url, license_list, specialty_list, output_dir)
+            # 処理成功後、ステータスを更新
+            shop_status[url] = True
+        except Exception as e:
+            print(f"❌ {entry.get('name', url)} の処理中にエラーが発生しました: {e}")
+            # エラーが発生した場合はステータスを更新しない（リトライ可能にする）
+            continue
+        finally:
+            # 定期的にステータスをファイルに書き込む
+            with open(shop_status_path, "w", encoding="utf-8") as f:
+                json.dump(shop_status, f, indent=4, ensure_ascii=False)
+
+    print("\n✨ すべてのURLの処理が完了しました。")
+
+    # --- 後続処理（データマージ、DB保存、CSV出力）---
+    path_list = [p for p in os.listdir(output_dir) if p.endswith('.json')]
+    if not path_list:
+        print("\n⚠️ 処理されたデータがありません。後続処理をスキップします。")
+        return
+
     data_list = []
     for file_name in path_list:
-        with open(f"{output_dir}/{file_name}", "r", encoding="utf-8") as f:
+        with open(os.path.join(output_dir, file_name), "r", encoding="utf-8") as f:
             data = json.load(f)
         data_list.append(data)
+
     df = pd.DataFrame(data_list)
     merged_df = merge_dive_shop_info(df)
-    merged_df.to_csv("sample.csv", index=False)
+
+    # DB保存
+    save_to_db(merged_df)
+
+    # CSV出力
+    output_csv_path = os.path.join(output_dir, "merged_df.csv")
+    merged_df.to_csv(output_csv_path, index=False)
+    print(f"\n📄 CSVファイルを出力しました: {output_csv_path}")
 
 if __name__ == "__main__":
     asyncio.run(main())
