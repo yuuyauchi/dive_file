@@ -23,32 +23,42 @@ client = OpenAI(api_key=openai_api_key)
 # 正規表現パターン
 pattern = r"^(https?://)([^/]+)"
 
+
 # モデル定義
 class Course(BaseModel):
     name: str
     price: int
     level: str
 
+
 class ArticleData(BaseModel):
     course_list: List[Course] = Field(
-        ..., description="ダイビングのコース名と価格のリスト",
+        ...,
+        description="ダイビングのコース名と価格のリスト",
         examples=[
             {"name": "Open Water Diver", "price": 39800, "level": "beginner"},
-            {"name": "Advanced Open Water Diver", "price": 49800, "level": "intermediate"}
-        ]
+            {
+                "name": "Advanced Open Water Diver",
+                "price": 49800,
+                "level": "intermediate",
+            },
+        ],
     )
+
 
 # 各種関数定義
 def load_license_data(path: str) -> tuple:
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data.get("license", []), data.get("specialities", [])
 
+
 def sanitize_filename(url: str) -> str:
     parsed = urlparse(url)
-    domain = parsed.netloc.replace('.', '_')
-    path = parsed.path.strip('/').replace('/', '_') or ''
+    domain = parsed.netloc.replace(".", "_")
+    path = parsed.path.strip("/").replace("/", "_") or ""
     return f"{domain}_{path}.json"
+
 
 def get_web_search_prompt(hostname: str, license_list, specialty_list) -> str:
     return f"""
@@ -75,6 +85,7 @@ def get_web_search_prompt(hostname: str, license_list, specialty_list) -> str:
         {specialty_list}
     """
 
+
 def search_web(query):
     response = client.chat.completions.create(
         model="gpt-4o-search-preview",
@@ -86,10 +97,12 @@ def search_web(query):
     )
     return response.choices[0].message.content
 
+
 extract_prompt = """
     以下のテキストからJSONを抽出してください。
     {text}
 """
+
 
 async def extract_course_info_from_url(url: str, license_list, specialty_list) -> dict:
     llm_strategy = LLMExtractionStrategy(
@@ -101,7 +114,7 @@ async def extract_course_info_from_url(url: str, license_list, specialty_list) -
         以下のWebページの内容から、ダイビングショップのコース情報を抽出してください。
         {license_list}
         {specialty_list}
-        """
+        """,
     )
     config = CrawlerRunConfig(
         exclude_external_links=True,
@@ -114,18 +127,24 @@ async def extract_course_info_from_url(url: str, license_list, specialty_list) -
         result = await crawler.arun(url=url, config=config)
         return json.loads(result.extracted_content)
 
+
 def merge_and_clean_course_info(course_info_dict, web_search_json, target_url):
     try:
         if isinstance(course_info_dict["course_list"], dict):
             course_info_dict["course_list"] = [course_info_dict["course_list"]]
         course_info_dict["course_list"].extend(web_search_json.get("course_list", []))
-        df = pd.DataFrame(course_info_dict["course_list"]).drop_duplicates(subset="name").reset_index(drop=True)
+        df = (
+            pd.DataFrame(course_info_dict["course_list"])
+            .drop_duplicates(subset="name")
+            .reset_index(drop=True)
+        )
         fixed_dict = json.loads(df.to_json(orient="index"))
         course_info_dict["course_list"] = list(fixed_dict.values())
         return course_info_dict
     except Exception as e:
         print(f"❌ course_listマージエラー: {e} - {target_url} スキップします。")
         return None
+
 
 def save_result(data: dict, filename: str, output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
@@ -134,17 +153,26 @@ def save_result(data: dict, filename: str, output_dir: str):
         json.dump(data, f, indent=4, ensure_ascii=False)
     print(f"✅ 保存完了: {path}")
 
+
 async def process_url(target_url: str, license_list, specialty_list, output_dir: str):
     # try:
     print(f"\n🔍 処理中: {target_url}")
     hostname = re.match(pattern, target_url).group(0)
-    course_info_json = await extract_course_info_from_url(target_url, license_list, specialty_list)
+    course_info_json = await extract_course_info_from_url(
+        target_url, license_list, specialty_list
+    )
     shop_info_json = await extract_shop_info(hostname)
 
-    course_info_dict = course_info_json[0] if isinstance(course_info_json, list) else course_info_json
+    course_info_dict = (
+        course_info_json[0] if isinstance(course_info_json, list) else course_info_json
+    )
     course_name_list = license_list + specialty_list
-    course_info_dict["name"] = correct_diving_course_spelling(course_info_dict["name"], client, course_name_list)
-    shop_info_dict = shop_info_json[0] if isinstance(shop_info_json, list) else shop_info_json
+    course_info_dict["name"] = correct_diving_course_spelling(
+        course_info_dict["name"], client, course_name_list
+    )
+    shop_info_dict = (
+        shop_info_json[0] if isinstance(shop_info_json, list) else shop_info_json
+    )
 
     if "course_list" not in course_info_dict:
         course_info_dict = {"course_list": course_info_dict}
@@ -155,8 +183,10 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     response = client.chat.completions.create(
         model="gpt-4.1-nano",
         temperature=0.0,
-        messages=[{"role": "user", "content": extract_prompt.format(text=course_info_text)}],
-        response_format={"type": "json_object"}
+        messages=[
+            {"role": "user", "content": extract_prompt.format(text=course_info_text)}
+        ],
+        response_format={"type": "json_object"},
     )
     web_search_json = json.loads(response.choices[0].message.content)
 
@@ -171,30 +201,34 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     filename = sanitize_filename(target_url)
     save_result(shop_info_dict, filename, output_dir)
 
+
 def load_json(path: str) -> List[dict]:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-    
+
+
 def merge_dive_shop_info(df: pd.DataFrame) -> pd.DataFrame:
     def merge_rows(group):
         first_row = group.iloc[0].copy()
 
         # course_list 統合
         all_courses = []
-        for courses in group['course_list']:
+        for courses in group["course_list"]:
             all_courses.extend(courses)
         all_course_list = []
         name_list = []
         for course in all_courses:
-            if course['name'] in name_list:
+            if course["name"] in name_list:
                 print(f"Duplicate course name found: {course['name']}")
                 continue
             all_course_list.append(course)
-            name_list.append(course['name'])
-        first_row['course_list'] = all_course_list
+            name_list.append(course["name"])
+        first_row["course_list"] = all_course_list
         return first_row
 
-    merged_df = df.groupby('name', as_index=False).apply(merge_rows).reset_index(drop=True)
+    merged_df = (
+        df.groupby("name", as_index=False).apply(merge_rows).reset_index(drop=True)
+    )
     return merged_df
 
 
@@ -202,7 +236,7 @@ async def main():
     license_list, specialty_list = load_license_data("backend/dive_info.json")
     output_dir = "output"
     shop_entries = load_json("backend/shop_urls.json")
-    course_description = load_json("backend/course_description.json")
+    # course_description = load_json("backend/course_description.json")
     for idx, entry in enumerate(shop_entries):
         url = entry["url"]
         # prefecture = entry["prefecture"]
@@ -230,6 +264,7 @@ async def main():
     df = pd.DataFrame(data_list)
     merged_df = merge_dive_shop_info(df)
     merged_df.to_csv("sample.csv", index=False)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

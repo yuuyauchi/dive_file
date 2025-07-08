@@ -1,7 +1,6 @@
 import openai
-import json
 import os
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
 
 load_dotenv()
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -20,7 +19,7 @@ diving_course_data = {
         "オープン・ウォーター・スクーバ・インストラクター",
         "マスター・スクーバ・ダイバー・トレーナー",
         "IDCスタッフ・インストラクター",
-        "コース・ディレクター"
+        "コース・ディレクター",
     ],
     "specialities": [
         "ピーク・パフォーマンス・ボイヤンシー (中性浮力)",
@@ -39,8 +38,8 @@ diving_course_data = {
         "アイス・ダイバー (氷)",
         "キャバーン・ダイバー (洞窟)",
         "リブリーザー・ダイバー",
-        "セルフ・リライアント・ダイバー"
-    ]
+        "セルフ・リライアント・ダイバー",
+    ],
 }
 
 
@@ -82,11 +81,14 @@ def correct_diving_course_spelling(input_string, llm_client, course_name_list):
         response = llm_client.chat.completions.create(
             model="gpt-4.1-nano",
             messages=[
-                {"role": "system", "content": "あなたはダイビングコースとスペシャリティの表記ゆれを修正するアシスタントです。"},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "あなたはダイビングコースとスペシャリティの表記ゆれを修正するアシスタントです。",
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.0,
-            max_tokens=100
+            max_tokens=100,
         )
         corrected_text = response.choices[0].message.content.strip()
         return corrected_text
@@ -94,21 +96,22 @@ def correct_diving_course_spelling(input_string, llm_client, course_name_list):
         print(f"OpenAI API呼び出し中にエラーが発生しました: {e}")
         return input_string  # エラー時は元の文字列を返す
 
+
 # 使用例
 if __name__ == "__main__":
     print("--- 表記ゆれ修正テスト ---")
-    if client: # clientがNoneでない場合のみテストを実行
+    if client:  # clientがNoneでない場合のみテストを実行
         test_strings = [
             "オープンウォーターダイバー",  # 表記ゆれ
-            "アドバンスド・オープンウォーター・ダイバー", # 表記ゆれ
+            "アドバンスド・オープンウォーター・ダイバー",  # 表記ゆれ
             "中性浮力",  # 表記ゆれ（部分一致だが正規表現でなく意味で判断させる）
-            "ディープダイバー", # 表記ゆれ
-            "スクーバ・ダイバー", # 正規
-            "ナイトロックス", # 「エンリッチド・エア・ダイバー」の別名的な表記
-            "水中写真", # 「デジタル水中フォトグラファー」の別名的な表記
-            "新しいコース", # 関連なし
-            "PADIオープン・ウォーター・ダイバー", # PADIが付いているケース
-            "アドヴァンスド", # 部分的な表記
+            "ディープダイバー",  # 表記ゆれ
+            "スクーバ・ダイバー",  # 正規
+            "ナイトロックス",  # 「エンリッチド・エア・ダイバー」の別名的な表記
+            "水中写真",  # 「デジタル水中フォトグラファー」の別名的な表記
+            "新しいコース",  # 関連なし
+            "PADIオープン・ウォーター・ダイバー",  # PADIが付いているケース
+            "アドヴァンスド",  # 部分的な表記
         ]
 
         for s in test_strings:
@@ -116,4 +119,6 @@ if __name__ == "__main__":
             breakpoint()
             print(f"{corrected}")
     else:
-        print("OpenAIクライアントが初期化されていないため、テストを実行できません。APIキーが正しく設定されているか確認してください。")
+        print(
+            "OpenAIクライアントが初期化されていないため、テストを実行できません。APIキーが正しく設定されているか確認してください。"
+        )
