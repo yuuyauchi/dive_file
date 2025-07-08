@@ -17,8 +17,8 @@ RUN apt-get update && \
 
 # 作業ディレクトリを設定
 WORKDIR /workspaces/blue_ocean
-COPY . /workspaces/blue_ocean/
+# COPY . /workspaces/blue_ocean/
 
-RUN pip install -r backend/requirements.txt
-RUN playwright install
-RUN playwright install-deps
+# RUN pip install -r backend/requirements.txt
+# RUN playwright install
+# RUN playwright install-deps
