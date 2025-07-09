@@ -5,6 +5,7 @@ import pandas as pd
 from typing import List, Optional
 import json
 import uuid
+import requests
 
 load_dotenv()
 supabase_url = os.getenv("SUPABASE_API_URL")
@@ -92,3 +93,66 @@ def add_diving_courses(data: List[dict]) -> List[dict]:
     # shop_idとtitleの組み合わせでコンフリクトを判断
     return upsert_rows("diving_courses", data_to_upsert, on_conflict='shop_id,title')
 
+def upload_shop_image(shop_id: str, image_url: str, bucket_name: str = "shop-images") -> Optional[str]:
+    """
+    元の画像URLを元に、画像が未処理の場合のみStorageにアップロードし、imagesテーブルに記録する。
+
+    Args:
+        shop_id (str): 画像を紐付けるショップのUUID。
+        image_url (str): ダウンロード対象の画像のURL（スクレイピング元のURL）。
+        bucket_name (str, optional): アップロード先のSupabase Storageバケット名。
+                                 デフォルトは "shop_images"。
+
+    Returns:
+        Optional[str]: 新しく画像がアップロードされた場合に、Supabase Storageの公開URLを返す。
+                       URLが無効、処理済み、またはエラーの場合はNoneを返す。
+    """
+    if not image_url or not isinstance(image_url, str):
+        return None
+
+    try:
+        # imagesテーブルで、同じショップIDと画像URLの組み合わせが既に存在するか確認
+        query = supabase.table("images").select("public_url").eq("shop_id", shop_id).eq("original_url", image_url).maybe_single()
+        response = query.execute()
+        
+        if response is not None and response.data:
+            return None # 既に処理済みのため何もしない
+
+        # 画像をダウンロード
+        response = requests.get(image_url, stream=True, timeout=10)
+        response.raise_for_status()
+        image_data = response.content
+        content_type = response.headers.get('Content-Type', 'image/jpeg')
+
+        # 保存先のパスとファイル名を決定
+        file_extension = image_url.split('.')[-1].split('?')[0] or 'jpg'
+        storage_path = f"{shop_id}/{uuid.uuid4()}.{file_extension}"
+        
+        # Supabase Storageにアップロード
+        supabase.storage.from_(bucket_name).upload(
+            path=storage_path,
+            file=image_data,
+            file_options={"content-type": content_type}
+        )
+        print(f"  ✅ 画像を以下のパスにアップロードしました: {storage_path}")
+        
+        public_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
+        
+        # imagesテーブルにレコードを挿入
+        image_record = {
+            "shop_id": shop_id,
+            "original_url": image_url,
+            "storage_path": storage_path,
+            "public_url": public_url
+        }
+        supabase.table("images").insert(image_record).execute()
+        
+        print(f"  ✅ imagesテーブルに記録しました: {public_url}")
+        return public_url
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 画像ダウンロードエラー (URL: {image_url}): {e}")
+        return None
+    except Exception as e:
+        print(f"❌ 画像処理エラー (URL: {image_url}): {e}")
+        return None

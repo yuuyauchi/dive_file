@@ -1,6 +1,6 @@
 import pandas as pd
 import ast
-from supabase_client import add_diving_shops, add_diving_courses
+from supabase_client import add_diving_shops, add_diving_courses, upload_shop_image
 
 def save_to_db(merged_df: pd.DataFrame):
     """
@@ -18,7 +18,15 @@ def save_to_db(merged_df: pd.DataFrame):
         db_shops_result = add_diving_shops(shops_to_save)
         print(f"  ✅ {len(db_shops_result)}件のショップ情報がDBに保存/更新されました。")
 
-        # 2. コース情報にshop_idを紐付け
+        # 2. ショップ画像の処理
+        print("\n🖼️ ショップ画像の処理を開始します...")
+        for shop in db_shops_result:
+            image_url = shop.get('image_url')
+            # image_urlが有効な場合にのみ処理を実行
+            if image_url and image_url.startswith(('http', 'https')):
+                upload_shop_image(shop_id=shop['id'], image_url=image_url)
+
+        # 3. コース情報にshop_idを紐付け
         # DBから返された結果には最新のIDが含まれている
         db_shops_df = pd.DataFrame(db_shops_result)[['id', 'name']]
         db_shops_df.rename(columns={'id': 'shop_id'}, inplace=True)
@@ -35,7 +43,7 @@ def save_to_db(merged_df: pd.DataFrame):
                         course['shop_id'] = row['shop_id']
                         all_courses.append(course)
 
-        # 3. コース情報をDBに保存
+        # 4. コース情報をDBに保存
         if all_courses:
             print(f"  -> {len(all_courses)}件のコース情報をupsertします。")
             db_courses_result = add_diving_courses(all_courses)
