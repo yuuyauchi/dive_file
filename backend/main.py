@@ -10,11 +10,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
-from database_handler import save_to_db
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
-from supabase_client import add_diving_shops, add_diving_courses
 from diving_course_normalizer import correct_diving_course_spelling
+from database.database_handler import save_to_db
+from database.supabase_client import add_diving_shops, add_diving_courses
 import uuid
 
 # 環境変数の読み込み

@@ -62,7 +62,7 @@ def add_diving_shops(
     column_list = [
         "id", "name", "description", "location", "prefecture",
         "address", "phone", "email", "website", "image_url",
-        "rating", "review_count"
+        "site_images", "rating", "review_count", 
     ]
     # dfに存在するカラムのみを対象にする
     df_columns = [col for col in column_list if col in df.columns]
@@ -74,6 +74,9 @@ def add_diving_shops(
         'website': '', 'image_url': '', 'location': '', 'prefecture': '',
         'rating': 0, 'review_count': 0
     }, inplace=True)
+
+    # データ型を整形
+    df['review_count'] = pd.to_numeric(df['review_count'], errors='coerce').fillna(0).astype(int)    
 
     data_to_upsert = df.to_dict(orient='records')
     # 'name' をコンフリクトのキーとしてupsertし、結果を返す
