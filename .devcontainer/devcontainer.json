@@ -1,0 +1,10 @@
+{
+	"name": "python 3.11",
+	"remoteUser": "root",
+	"workspaceFolder": "/workspaces/dive_file",
+	"build": {
+		"context": "..",
+		"dockerfile": "../backend/Dockerfile"
+	},
+	"postCreateCommand": "pip install -r /workspaces/dive_file/backend/requirements.txt && playwright install && playwright install-deps"
+}

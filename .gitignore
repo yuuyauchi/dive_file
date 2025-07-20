@@ -1,0 +1,5 @@
+.env
+__pycache__
+output
+# Status file for shop URL processing
+backend/shop_status.json
