@@ -21,6 +21,9 @@ class ShopInfo(BaseModel):
     address: Optional[str] = Field(
         None, description="住所", examples="沖縄県那覇市松山1-2-3"
     )
+    city: Optional[str] = Field(
+        None, description="市名", examples="那覇市"
+    )
     location: Optional[str] = Field(
         None, description="ダイビングのロケーション", examples="石垣島"
     )
