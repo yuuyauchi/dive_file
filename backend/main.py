@@ -12,7 +12,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
-from scripts.add_min_days_to_csv import add_min_days_to_courses
+from scripts.apply_course_description import apply_course_description
 from diving_course_normalizer import correct_diving_course_spelling
 from database.database_handler import save_to_db
 from database.supabase_client import add_diving_shops, add_diving_courses
@@ -289,9 +289,9 @@ async def main():
     df = pd.DataFrame(data_list)
     merged_df = merge_dive_shop_info(df)
 
-    # コース情報に最低日数を追加
+    # course_description.jsonからコース詳細情報を適用
     course_description_path = "backend/course_description.json"
-    merged_df = add_min_days_to_courses(merged_df, course_description_path)
+    merged_df = apply_course_description(merged_df, course_description_path)
 
     # DB保存
     save_to_db(merged_df)

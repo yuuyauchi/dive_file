@@ -97,11 +97,15 @@ def add_diving_courses(data: List[dict]) -> List[dict]:
     if 'min_days' in df.columns:
         df['min_days'] = pd.to_numeric(df['min_days'], errors='coerce').astype('Int64')
 
+    # full_descriptionカラムが存在する場合、文字列に変換し、欠損値を空文字で埋める
+    if 'full_description' in df.columns:
+        df['full_description'] = df['full_description'].fillna('').astype(str)
+
     df.rename(columns={'name': 'title'}, inplace=True)
     df.dropna(subset=['shop_id', 'title'], inplace=True)
 
     # DBスキーマに存在するカラムのみを対象とする
-    db_columns = ['shop_id', 'title', 'price', 'level', 'min_days']
+    db_columns = ['shop_id', 'title', 'price', 'level', 'min_days', 'full_description']
     df_columns = [col for col in db_columns if col in df.columns]
     df_for_upsert = df[df_columns]
 
