@@ -2,21 +2,20 @@ import asyncio
 import json
 import os
 import re
-from urllib.parse import urlparse
 from typing import List
+from urllib.parse import urlparse
+
 import pandas as pd
-from pydantic import BaseModel, Field
-from dotenv import load_dotenv
-from openai import OpenAI
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from database.database_handler import save_to_db
+from diving_course_normalizer import correct_diving_course_spelling
+from dotenv import load_dotenv
 from extract_shop_info import extract_shop_info
 from get_place_details import get_reviews
+from openai import OpenAI
+from pydantic import BaseModel, Field
 from scripts.apply_course_description import apply_course_description
-from diving_course_normalizer import correct_diving_course_spelling
-from database.database_handler import save_to_db
-from database.supabase_client import add_diving_shops, add_diving_courses
-import uuid
 
 # 環境変数の読み込み
 load_dotenv()
@@ -196,10 +195,25 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     if merged is None:
         return
     # priceが0のコースを除外
-    merged = {"course_list": [course for course in merged["course_list"] if not (isinstance(course.get('price'), (int, float)) and course.get('price') == 0)]}
+    merged = {
+        "course_list": [
+            course
+            for course in merged["course_list"]
+            if not (
+                isinstance(course.get("price"), (int, float))
+                and course.get("price") == 0
+            )
+        ]
+    }
     # course_listのnameがlicense_listまたはspecialty_listに含まれるものだけを残す
-    merged = {"course_list": [item for item in merged["course_list"] if item.get('name') in course_name_list]}
-    
+    merged = {
+        "course_list": [
+            item
+            for item in merged["course_list"]
+            if item.get("name") in course_name_list
+        ]
+    }
+
     shop_info_dict.update(merged)
     if shop_info_dict.get("name"):
         reviews_dict = get_reviews(shop_info_dict["name"])
@@ -279,7 +293,7 @@ async def main():
     print("\n✨ すべてのURLの処理が完了しました。")
 
     # --- 後続処理（データマージ、DB保存、CSV出力）---
-    path_list = [p for p in os.listdir(output_dir) if p.endswith('.json')]
+    path_list = [p for p in os.listdir(output_dir) if p.endswith(".json")]
     if not path_list:
         print("\n⚠️ 処理されたデータがありません。後続処理をスキップします。")
         return
