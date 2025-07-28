@@ -196,9 +196,9 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
     if merged is None:
         return
     # priceが0のコースを除外
-    merged = [course for course in merged["course_list"] if not (isinstance(course.get('price'), (int, float)) and course.get('price') == 0)]
+    merged = {"course_list": [course for course in merged["course_list"] if not (isinstance(course.get('price'), (int, float)) and course.get('price') == 0)]}
     # course_listのnameがlicense_listまたはspecialty_listに含まれるものだけを残す
-    merged = [item for item in merged if item.get('name') in course_name_list]
+    merged = {"course_list": [item for item in merged["course_list"] if item.get('name') in course_name_list]}
     
     shop_info_dict.update(merged)
     if shop_info_dict.get("name"):
