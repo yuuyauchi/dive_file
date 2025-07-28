@@ -92,13 +92,23 @@ def add_diving_courses(data: List[dict]) -> List[dict]:
     # 必須カラムとデータ型を整形
     df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0).astype(int)
     df['level'] = df['level'].fillna('unknown').astype(str)
+
+    # min_daysカラムが存在する場合、Nullable Integerに変換
+    if 'min_days' in df.columns:
+        df['min_days'] = pd.to_numeric(df['min_days'], errors='coerce').astype('Int64')
+
     df.rename(columns={'name': 'title'}, inplace=True)
     df.dropna(subset=['shop_id', 'title'], inplace=True)
 
     # DBスキーマに存在するカラムのみを対象とする
-    db_columns = ['shop_id', 'title', 'price', 'level']
+    db_columns = ['shop_id', 'title', 'price', 'level', 'min_days']
     df_columns = [col for col in db_columns if col in df.columns]
-    data_to_upsert = df[df_columns].to_dict(orient='records')
+    df_for_upsert = df[df_columns]
+
+    # DataFrame内のNaNをNoneに置換してから辞書のリストに変換
+    # これにより、'min_days'などの欠損値がNaN(JSON非互換)からNone(JSONのnull)に変換される
+    data_to_upsert = df_for_upsert.where(pd.notna(df_for_upsert), None).to_dict(orient='records')
+    
     
     # shop_idとtitleの組み合わせでコンフリクトを判断
     return upsert_rows("diving_courses", data_to_upsert, on_conflict='shop_id,title')
