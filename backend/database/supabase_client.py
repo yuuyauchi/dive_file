@@ -61,8 +61,8 @@ def add_diving_shops(
     # DBスキーマに存在するカラムのみを選択
     column_list = [
         "id", "name", "description", "location", "prefecture",
-        "address", "phone", "email", "website", "image_url",
-        "site_images", "rating", "review_count", 
+        "city", "address", "phone", "email", "website", "image_url",
+        "site_images", "rating", "review_count",
     ]
     # dfに存在するカラムのみを対象にする
     df_columns = [col for col in column_list if col in df.columns]
@@ -71,7 +71,7 @@ def add_diving_shops(
     # 欠損値を適切に処理
     df.fillna(value={
         'description': '', 'address': '', 'phone': '', 'email': '',
-        'website': '', 'image_url': '', 'location': '', 'prefecture': '',
+        'website': '', 'image_url': '', 'location': '', 'prefecture': '', 'city': '',
         'rating': 0, 'review_count': 0
     }, inplace=True)
 

@@ -1,6 +1,7 @@
 import openai
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -69,12 +70,21 @@ def correct_diving_course_spelling(input_string, llm_client, course_name_list):
     {course_name_list}
 
     ユーザーが入力した以下の文字列は、上記のリストのいずれかの項目と表記ゆれしている可能性があります。
-    表記ゆれしている場合、正規のリストの表記に修正してください。
+    表記ゆれしている場合、正規のリストの表記に修正し、json形式で出力してください。
     もし、リストのどの項目とも関連がない、または表記ゆれではないと判断される場合は、入力された文字列をそのまま返してください。
 
     入力文字列: "{input_string}"
 
-    修正結果（正規の表記、または元の文字列）:
+    出力形式:
+    {{
+        "corrected_text": "修正された文字列"
+    }}
+    出力例:
+    {{
+        "corrected_text": "オープン・ウォーター・ダイバー"
+    }}
+    出力のキーは "corrected_text" のみで、他のキーは含めないでください。
+    出力はJSON形式で、改行や空白は含めないでください
     """
 
     try:
@@ -88,9 +98,11 @@ def correct_diving_course_spelling(input_string, llm_client, course_name_list):
                 {"role": "user", "content": prompt},
             ],
             temperature=0.0,
+            response_format={"type": "json_object"},
             max_tokens=100,
         )
         corrected_text = response.choices[0].message.content.strip()
+        corrected_text = json.loads(corrected_text)["corrected_text"]
         return corrected_text
     except Exception as e:
         print(f"OpenAI API呼び出し中にエラーが発生しました: {e}")
