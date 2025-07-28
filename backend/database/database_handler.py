@@ -2,7 +2,7 @@ import ast
 
 import pandas as pd
 
-from .supabase_client import add_diving_courses, add_diving_shops
+from .supabase_client import add_diving_courses, add_diving_shops, upload_shop_image
 
 
 def save_to_db(merged_df: pd.DataFrame):
@@ -23,14 +23,24 @@ def save_to_db(merged_df: pd.DataFrame):
         db_shops_result = add_diving_shops(shops_to_save)
         print(f"  ✅ {len(db_shops_result)}件のショップ情報がDBに保存/更新されました。")
 
-        # ※リリース初期は、ショップの画像URLをそのままフロントエンドで使用する。そのためストレージには保存しない。
         # 2. ショップ画像の処理
-        # print("\n🖼️ ショップ画像の処理を開始します...")
-        # for shop in db_shops_result:
-        #     image_url = shop.get('image_url')
-        #     # image_urlが有効な場合にのみ処理を実行
-        #     if image_url and image_url.startswith(('http', 'https')):
-        #         upload_shop_image(shop_id=shop['id'], image_url=image_url)
+        print("\n🖼️ ショップ画像の処理を開始します...")
+        for shop in db_shops_result:
+            shop_id = shop["id"]
+
+            # サムネイル画像 (image_url) の処理
+            thumbnail_url = shop.get("image_url")
+            if thumbnail_url and isinstance(thumbnail_url, str) and thumbnail_url.startswith(("http", "https")):
+                print(f"  -> サムネイル画像を処理中: {thumbnail_url}")
+                upload_shop_image(shop_id=shop_id, image_url=thumbnail_url, for_thumbnail=True)
+
+            # サイト内画像 (site_images) の処理
+            site_images = shop.get("site_images")
+            if site_images and isinstance(site_images, list):
+                print(f"  -> {len(site_images)}件のサイト内画像を処理中...")
+                for image_url in site_images:
+                    if image_url and isinstance(image_url, str) and image_url.startswith(("http", "https")):
+                        upload_shop_image(shop_id=shop_id, image_url=image_url, for_thumbnail=False)
 
         # 3. コース情報にshop_idを紐付け
         # DBから返された結果には最新のIDが含まれている
