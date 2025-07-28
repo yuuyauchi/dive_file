@@ -1,12 +1,12 @@
 import json
 import os
 from typing import Optional
-from pydantic import BaseModel, Field
-from dotenv import load_dotenv
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
-from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from urllib.parse import urlparse
 
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, LLMConfig
+from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 # .envからAPIキーを読み込む
 load_dotenv()
@@ -21,9 +21,7 @@ class ShopInfo(BaseModel):
     address: Optional[str] = Field(
         None, description="住所", examples="沖縄県那覇市松山1-2-3"
     )
-    city: Optional[str] = Field(
-        None, description="市名", examples="那覇市"
-    )
+    city: Optional[str] = Field(None, description="市名", examples="那覇市")
     location: Optional[str] = Field(
         None, description="ダイビングのロケーション", examples="石垣島"
     )

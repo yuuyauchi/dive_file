@@ -6,5 +6,12 @@
 		"context": "..",
 		"dockerfile": "../backend/Dockerfile"
 	},
-	"postCreateCommand": "pip install -r /workspaces/dive_file/backend/requirements.txt && playwright install && playwright install-deps"
+	"postCreateCommand": "pip install -r /workspaces/dive_file/backend/requirements.txt && playwright install && playwright install-deps",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.autopep8"
+			]
+		}
+	}
 }
