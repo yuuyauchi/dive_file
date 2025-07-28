@@ -192,10 +192,14 @@ async def process_url(target_url: str, license_list, specialty_list, output_dir:
         response_format={"type": "json_object"},
     )
     web_search_json = json.loads(response.choices[0].message.content)
-
     merged = merge_and_clean_course_info(course_info_dict, web_search_json, target_url)
     if merged is None:
         return
+    # priceが0のコースを除外
+    merged = [course for course in merged["course_list"] if not (isinstance(course.get('price'), (int, float)) and course.get('price') == 0)]
+    # course_listのnameがlicense_listまたはspecialty_listに含まれるものだけを残す
+    merged = [item for item in merged if item.get('name') in course_name_list]
+    
     shop_info_dict.update(merged)
     if shop_info_dict.get("name"):
         reviews_dict = get_reviews(shop_info_dict["name"])
