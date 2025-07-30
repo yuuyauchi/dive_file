@@ -147,7 +147,7 @@ def add_diving_courses(data: List[dict]) -> List[dict]:
 
 
 def upload_shop_image(
-    shop_id: str, image_url: str, bucket_name: str = "shop-images"
+    shop_id: str, image_url: str, for_thumbnail: bool, bucket_name: str = "shop-images"
 ) -> Optional[str]:
     """
     元の画像URLを元に、画像が未処理の場合のみStorageにアップロードし、imagesテーブルに記録する。
@@ -155,6 +155,7 @@ def upload_shop_image(
     Args:
         shop_id (str): 画像を紐付けるショップのUUID。
         image_url (str): ダウンロード対象の画像のURL（スクレイピング元のURL）。
+        for_thumbnail (bool): この画像がサムネイル用かどうかのフラグ。
         bucket_name (str, optional): アップロード先のSupabase Storageバケット名。
                                  デフォルトは "shop_images"。
 
@@ -205,6 +206,7 @@ def upload_shop_image(
             "original_url": image_url,
             "storage_path": storage_path,
             "public_url": public_url,
+            "for_thumbnail": for_thumbnail,
         }
         supabase.table("images").insert(image_record).execute()
 
